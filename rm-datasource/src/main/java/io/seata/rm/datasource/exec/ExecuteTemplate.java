@@ -77,6 +77,7 @@ public class ExecuteTemplate {
                     statementProxy.getTargetSQL(),
                     dbType);
         }
+        //定义指定的Executor执行 传入statementCallback用来执行真实sql  statementProxy用来获取connectProxy 绑定xid 获取锁等操作需要
         Executor<T> executor;
         if (CollectionUtils.isEmpty(sqlRecognizers)) {
             executor = new PlainExecutor<>(statementProxy, statementCallback);
@@ -108,6 +109,7 @@ public class ExecuteTemplate {
         }
         T rs;
         try {
+            //执行Executor调用了模板抽象类AbstractDMLBaseExecutor
             rs = executor.execute(args);
         } catch (Throwable ex) {
             if (!(ex instanceof SQLException)) {

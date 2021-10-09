@@ -28,6 +28,7 @@ import io.seata.rm.datasource.xa.DataSourceProxyXA;
  * the type data source proxy holder
  *
  * @author xingfudeshi@gmail.com
+ * 代理数据源持有者
  */
 public class DataSourceProxyHolder {
     private static final int MAP_INITIAL_CAPACITY = 8;
@@ -64,6 +65,7 @@ public class DataSourceProxyHolder {
      * @param dataSourceProxyMode the data source proxy mode
      * @return dataSourceProxy
      */
+    //把数据源添加到seata的代理数据源持有者中    bean后置处理器中判断datasource添加
     public SeataDataSourceProxy putDataSource(DataSource dataSource, BranchType dataSourceProxyMode) {
         DataSource originalDataSource;
         if (dataSource instanceof SeataDataSourceProxy) {
@@ -92,7 +94,7 @@ public class DataSourceProxyHolder {
         }
         return dsProxy;
     }
-
+    //XA或AT   数据源动态代理DataSource加强类  内部还有ConnectionProxy加强类
     private SeataDataSourceProxy createDsProxyByMode(BranchType mode, DataSource originDs) {
         return BranchType.XA == mode ? new DataSourceProxyXA(originDs) : new DataSourceProxy(originDs);
     }

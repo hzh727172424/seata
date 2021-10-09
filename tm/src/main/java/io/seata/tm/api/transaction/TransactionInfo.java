@@ -76,7 +76,7 @@ public final class TransactionInfo implements Serializable {
                 }
             }
         }
-
+        //如果是空的话会返回true 回滚
         return !(winner instanceof NoRollbackRule);
     }
 

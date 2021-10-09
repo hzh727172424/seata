@@ -43,6 +43,7 @@ import static io.seata.common.DefaultValues.DEFAULT_CLIENT_REPORT_SUCCESS_ENABLE
  * The type Connection proxy.
  *
  * @author sharajava
+ * 数据库连接加强类
  */
 public class ConnectionProxy extends AbstractConnectionProxy {
 
@@ -116,6 +117,7 @@ public class ConnectionProxy extends AbstractConnectionProxy {
         }
         // Just check lock without requiring lock by now.
         try {
+            //DefaultResourceManager.get()获取指定模式的管理器。会通过反射创建
             boolean lockable = DefaultResourceManager.get().lockQuery(BranchType.AT,
                 getDataSourceProxy().getResourceId(), context.getXid(), lockKeys);
             if (!lockable) {
@@ -224,7 +226,7 @@ public class ConnectionProxy extends AbstractConnectionProxy {
         context.releaseSavepoint(savepoint);
     }
 
-
+    //连接的commit  coomit之前需要校验获取全局锁
     private void doCommit() throws SQLException {
         if (context.inGlobalTransaction()) {
             processGlobalTransactionCommit();
@@ -236,6 +238,7 @@ public class ConnectionProxy extends AbstractConnectionProxy {
     }
 
     private void processLocalCommitWithGlobalLocks() throws SQLException {
+        //校验GlobalLock全局锁
         checkLock(context.buildLockKeys());
         try {
             targetConnection.commit();
@@ -246,6 +249,7 @@ public class ConnectionProxy extends AbstractConnectionProxy {
     }
 
     private void processGlobalTransactionCommit() throws SQLException {
+        //GlobalTransaction注册全局锁
         try {
             register();
         } catch (TransactionException e) {

@@ -57,6 +57,7 @@ public class TransactionalTemplate {
         GlobalTransaction tx = GlobalTransactionContext.getCurrent();
 
         // 1.2 Handle the transaction propagation.
+        //传播机制
         Propagation propagation = txInfo.getPropagation();
         SuspendedResourcesHolder suspendedResourcesHolder = null;
         try {
@@ -114,11 +115,13 @@ public class TransactionalTemplate {
             }
 
             // set current tx config to holder
+            //设置当前的返回以前的
             GlobalLockConfig previousConfig = replaceGlobalLockConfig(txInfo);
 
             try {
                 // 2. If the tx role is 'GlobalTransactionRole.Launcher', send the request of beginTransaction to TC,
                 //    else do nothing. Of course, the hooks will still be triggered.
+                //开始事务  获取xid加入本地rootContext容器
                 beginTransaction(txInfo, tx);
 
                 Object rs;
@@ -127,16 +130,19 @@ public class TransactionalTemplate {
                     rs = business.execute();
                 } catch (Throwable ex) {
                     // 3. The needed business exception to rollback.
+                    //报错需要回滚
                     completeTransactionAfterThrowing(txInfo, tx, ex);
                     throw ex;
                 }
 
                 // 4. everything is fine, commit.
+                //提交事务
                 commitTransaction(tx);
 
                 return rs;
             } finally {
                 //5. clear
+                //把以前的状态设置回去
                 resumeGlobalLockConfig(previousConfig);
                 triggerAfterCompletion();
                 cleanUp();
@@ -174,6 +180,7 @@ public class TransactionalTemplate {
 
     private void completeTransactionAfterThrowing(TransactionInfo txInfo, GlobalTransaction tx, Throwable originalException) throws TransactionalExecutor.ExecutionException {
         //roll back
+        //默认最高异常级别就回滚 否则提交 默认只要报错就回滚
         if (txInfo != null && txInfo.rollbackOn(originalException)) {
             try {
                 rollbackTransaction(tx, originalException);
@@ -205,6 +212,7 @@ public class TransactionalTemplate {
         tx.rollback();
         triggerAfterRollback();
         // 3.1 Successfully rolled back
+        //回滚成功报错
         throw new TransactionalExecutor.ExecutionException(tx, GlobalStatus.RollbackRetrying.equals(tx.getLocalStatus())
             ? TransactionalExecutor.Code.RollbackRetrying : TransactionalExecutor.Code.RollbackDone, originalException);
     }

@@ -22,10 +22,12 @@ import io.seata.core.model.GlobalLockConfig;
 /**
  * executor template for local transaction which need global lock
  * @author selfishlover
+ * //全局锁模板
  */
 public class GlobalLockTemplate {
 
     public Object execute(GlobalLockExecutor executor) throws Throwable {
+        //首先获取全局锁。没有锁住的话就上锁
         boolean alreadyInGlobalLock = RootContext.requireGlobalLock();
         if (!alreadyInGlobalLock) {
             RootContext.bindGlobalLockFlag();
@@ -34,6 +36,7 @@ public class GlobalLockTemplate {
         // set my config to config holder so that it can be access in further execution
         // for example, LockRetryController can access it with config holder
         GlobalLockConfig myConfig = executor.getGlobalLockConfig();
+        //把配置设置到线程本地中
         GlobalLockConfig previousConfig = GlobalLockConfigHolder.setAndReturnPrevious(myConfig);
 
         try {
@@ -41,6 +44,7 @@ public class GlobalLockTemplate {
         } finally {
             // only unbind when this is the root caller.
             // otherwise, the outer caller would lose global lock flag
+            //根据当前调用者之前是未锁定状态的才进行解锁。而不是根据RootContent中重新获取的锁定标志
             if (!alreadyInGlobalLock) {
                 RootContext.unbindGlobalLockFlag();
             }

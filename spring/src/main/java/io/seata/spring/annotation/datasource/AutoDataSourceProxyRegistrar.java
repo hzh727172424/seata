@@ -31,7 +31,7 @@ public class AutoDataSourceProxyRegistrar implements ImportBeanDefinitionRegistr
     private static final String ATTRIBUTE_KEY_USE_JDK_PROXY = "useJdkProxy";
     private static final String ATTRIBUTE_KEY_EXCLUDES = "excludes";
     private static final String ATTRIBUTE_KEY_DATA_SOURCE_PROXY_MODE = "dataSourceProxyMode";
-
+    //注册seata的数据源后置处理器和自动数据源代理创建者
     public static final String BEAN_NAME_SEATA_DATA_SOURCE_BEAN_POST_PROCESSOR = "seataDataSourceBeanPostProcessor";
     public static final String BEAN_NAME_SEATA_AUTO_DATA_SOURCE_PROXY_CREATOR = "seataAutoDataSourceProxyCreator";
 

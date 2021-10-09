@@ -64,7 +64,7 @@ public class DefaultResourceManager implements ResourceManager {
     public static void mockResourceManager(BranchType branchType, ResourceManager rm) {
         resourceManagers.put(branchType, rm);
     }
-
+    //动态通过反射创建所有ResourceManager的实例
     protected void initResourceManagers() {
         //init all resource managers
         List<ResourceManager> allResourceManagers = EnhancedServiceLoader.loadAll(ResourceManager.class);

@@ -33,6 +33,7 @@ import static io.seata.core.model.BranchType.XA;
  * The type Root context.
  *
  * @author slievrly
+ *   事务的数据容器
  */
 public class RootContext {
 

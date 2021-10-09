@@ -89,6 +89,7 @@ public class DefaultGlobalTransaction implements GlobalTransaction {
 
     @Override
     public void begin(int timeout, String name) throws TransactionException {
+        //目前根据代码走 事务角色必然是Launcher 也就是启动一个新事务。如果不是就是加入一个事务
         if (role != GlobalTransactionRole.Launcher) {
             assertXIDNotNull();
             if (LOGGER.isDebugEnabled()) {
@@ -97,11 +98,13 @@ public class DefaultGlobalTransaction implements GlobalTransaction {
             return;
         }
         assertXIDNull();
+        //事务刚开始不应该存在xid
         String currentXid = RootContext.getXID();
         if (currentXid != null) {
             throw new IllegalStateException("Global transaction already exists," +
                 " can't begin a new global transaction, currentXid = " + currentXid);
         }
+        //TM像TC注册一个全局事务返回xid
         xid = transactionManager.begin(null, null, name, timeout);
         status = GlobalStatus.Begin;
         RootContext.bind(xid);
@@ -144,6 +147,7 @@ public class DefaultGlobalTransaction implements GlobalTransaction {
         }
     }
 
+    //回滚  提交同理
     @Override
     public void rollback() throws TransactionException {
         if (role == GlobalTransactionRole.Participant) {
@@ -154,11 +158,12 @@ public class DefaultGlobalTransaction implements GlobalTransaction {
             return;
         }
         assertXIDNotNull();
-
+        //回滚和提交操作会重试指定次数
         int retry = ROLLBACK_RETRY_COUNT <= 0 ? DEFAULT_TM_ROLLBACK_RETRY_COUNT : ROLLBACK_RETRY_COUNT;
         try {
             while (retry > 0) {
                 try {
+                    //回滚返回当前事务的状态
                     status = transactionManager.rollback(xid);
                     break;
                 } catch (Throwable ex) {

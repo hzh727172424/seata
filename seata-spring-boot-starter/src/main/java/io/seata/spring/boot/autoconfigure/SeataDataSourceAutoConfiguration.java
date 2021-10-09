@@ -32,6 +32,7 @@ import static io.seata.spring.annotation.datasource.AutoDataSourceProxyRegistrar
  * The type Seata data source auto configuration.
  *
  * @author xingfudeshi@gmail.com
+ * 根据seata的properties指定生成对应模式的类
  */
 @ConditionalOnBean(DataSource.class)
 @ConditionalOnExpression("${seata.enable:true} && ${seata.enableAutoDataSourceProxy:true} && ${seata.enable-auto-data-source-proxy:true}")

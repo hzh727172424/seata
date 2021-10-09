@@ -63,7 +63,8 @@ import static io.seata.common.DefaultValues.DEFAULT_TM_DEGRADE_CHECK_PERIOD;
 /**
  * The type Global transactional interceptor.
  *
- * @author slievrly
+ * @author slievrly、
+ *  全局事务动态代理类
  */
 public class GlobalTransactionalInterceptor implements ConfigurationChangeListener, MethodInterceptor {
 
@@ -116,6 +117,7 @@ public class GlobalTransactionalInterceptor implements ConfigurationChangeListen
      */
     public GlobalTransactionalInterceptor(FailureHandler failureHandler) {
         this.failureHandler = failureHandler == null ? DEFAULT_FAIL_HANDLER : failureHandler;
+        //从配置工厂中获取配置。  工厂从配置文件中获取
         this.disable = ConfigurationFactory.getInstance().getBoolean(ConfigurationKeys.DISABLE_GLOBAL_TRANSACTION,
             DEFAULT_DISABLE_GLOBAL_TRANSACTION);
         degradeCheck = ConfigurationFactory.getInstance().getBoolean(ConfigurationKeys.CLIENT_DEGRADE_CHECK,
@@ -144,8 +146,10 @@ public class GlobalTransactionalInterceptor implements ConfigurationChangeListen
             final GlobalTransactional globalTransactionalAnnotation =
                 getAnnotation(method, targetClass, GlobalTransactional.class);
             final GlobalLock globalLockAnnotation = getAnnotation(method, targetClass, GlobalLock.class);
+            //对应配置文件中disableGlobalTransaction 有开启全局事务此处才进行代理
             boolean localDisable = disable || (degradeCheck && degradeNum >= degradeCheckAllowTimes);
             if (!localDisable) {
+                //全局事务拦截器和全局锁分开处理
                 if (globalTransactionalAnnotation != null) {
                     return handleGlobalTransaction(methodInvocation, globalTransactionalAnnotation);
                 } else if (globalLockAnnotation != null) {
@@ -158,12 +162,13 @@ public class GlobalTransactionalInterceptor implements ConfigurationChangeListen
 
     Object handleGlobalLock(final MethodInvocation methodInvocation,
         final GlobalLock globalLockAnno) throws Throwable {
+        //调用全局锁的模板方法执行  RM
         return globalLockTemplate.execute(new GlobalLockExecutor() {
             @Override
             public Object execute() throws Throwable {
                 return methodInvocation.proceed();
             }
-
+            //配置文件设定重试次数
             @Override
             public GlobalLockConfig getGlobalLockConfig() {
                 GlobalLockConfig config = new GlobalLockConfig();
@@ -178,6 +183,7 @@ public class GlobalTransactionalInterceptor implements ConfigurationChangeListen
         final GlobalTransactional globalTrxAnno) throws Throwable {
         boolean succeed = true;
         try {
+            //全局事务的模板方法 TM
             return transactionalTemplate.execute(new TransactionalExecutor() {
                 @Override
                 public Object execute() throws Throwable {

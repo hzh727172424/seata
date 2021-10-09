@@ -79,6 +79,7 @@ public abstract class AbstractDMLBaseExecutor<T, S extends Statement> extends Ba
     public T doExecute(Object... args) throws Throwable {
         AbstractConnectionProxy connectionProxy = statementProxy.getConnectionProxy();
         if (connectionProxy.getAutoCommit()) {
+            //自动提交设置了自动提交依然走手动提交流程
             return executeAutoCommitTrue(args);
         } else {
             return executeAutoCommitFalse(args);
@@ -96,9 +97,12 @@ public abstract class AbstractDMLBaseExecutor<T, S extends Statement> extends Ba
         if (!JdbcConstants.MYSQL.equalsIgnoreCase(getDbType()) && isMultiPk()) {
             throw new NotSupportYetException("multi pk only support mysql!");
         }
+        //前镜像
         TableRecords beforeImage = beforeImage();
         T result = statementCallback.execute(statementProxy.getTargetStatement(), args);
+        //后镜像
         TableRecords afterImage = afterImage(beforeImage);
+        //预处理undolog 这个是seata的undolog  加入到ConnectionProxy的存储sql容器中
         prepareUndoLog(beforeImage, afterImage);
         return result;
     }

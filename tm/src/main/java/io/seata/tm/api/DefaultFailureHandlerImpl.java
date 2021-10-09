@@ -31,6 +31,7 @@ import org.slf4j.LoggerFactory;
  * The type Default failure handler.
  *
  * @author slievrly
+ * AT和xa失败的处理机制
  */
 public class DefaultFailureHandlerImpl implements FailureHandler {
 

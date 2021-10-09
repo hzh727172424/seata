@@ -55,6 +55,7 @@ public class SeataDataSourceBeanPostProcessor implements BeanPostProcessor {
             //When not in the excludes, put and init proxy.
             if (!excludes.contains(bean.getClass().getName())) {
                 //Only put and init proxy, not return proxy.
+                //扫描数据源加入seata的数据源map中
                 DataSourceProxyHolder.get().putDataSource((DataSource) bean, dataSourceProxyMode);
             }
 

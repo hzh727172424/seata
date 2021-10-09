@@ -87,6 +87,7 @@ import static io.seata.spring.boot.autoconfigure.StarterConstants.LOAD_BALANCE_P
  * The type Seata properties auto configuration
  *
  * @author xingfudeshi@gmail.com
+ *  所有配置属性存在map中。后续获取对应的进行注册。  策略模式
  */
 @ConditionalOnProperty(prefix = SEATA_PREFIX, name = "enabled", havingValue = "true", matchIfMissing = true)
 @ComponentScan(basePackages = "io.seata.spring.boot.autoconfigure.properties")
