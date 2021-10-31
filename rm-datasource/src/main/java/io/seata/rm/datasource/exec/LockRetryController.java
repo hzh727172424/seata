@@ -59,6 +59,7 @@ public class LockRetryController {
      * @throws LockWaitTimeoutException the lock wait timeout exception
      */
     public void sleep(Exception e) throws LockWaitTimeoutException {
+        //自减次数 次数小于0就不重试了
         if (--lockRetryTimes < 0) {
             throw new LockWaitTimeoutException("Global lock wait timeout", e);
         }

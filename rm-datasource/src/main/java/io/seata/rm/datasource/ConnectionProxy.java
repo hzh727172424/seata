@@ -230,6 +230,7 @@ public class ConnectionProxy extends AbstractConnectionProxy {
     private void doCommit() throws SQLException {
         if (context.inGlobalTransaction()) {
             processGlobalTransactionCommit();
+            //如果GlobalLock了 那么会走这个逻辑
         } else if (context.isGlobalLockRequire()) {
             processLocalCommitWithGlobalLocks();
         } else {
@@ -238,7 +239,7 @@ public class ConnectionProxy extends AbstractConnectionProxy {
     }
 
     private void processLocalCommitWithGlobalLocks() throws SQLException {
-        //校验GlobalLock全局锁
+        //提前校验GlobalLock全局锁再提交
         checkLock(context.buildLockKeys());
         try {
             targetConnection.commit();
@@ -256,7 +257,9 @@ public class ConnectionProxy extends AbstractConnectionProxy {
             recognizeLockKeyConflictException(e, context.buildLockKeys());
         }
         try {
+            //数据库写undolog
             UndoLogManagerFactory.getUndoLogManager(this.getDbType()).flushUndoLogs(this);
+            //提交
             targetConnection.commit();
         } catch (Throwable ex) {
             LOGGER.error("process connectionProxy commit error: {}", ex.getMessage(), ex);
@@ -331,7 +334,7 @@ public class ConnectionProxy extends AbstractConnectionProxy {
     public static class LockRetryPolicy {
         protected static final boolean LOCK_RETRY_POLICY_BRANCH_ROLLBACK_ON_CONFLICT = ConfigurationFactory
             .getInstance().getBoolean(ConfigurationKeys.CLIENT_LOCK_RETRY_POLICY_BRANCH_ROLLBACK_ON_CONFLICT, DEFAULT_CLIENT_LOCK_RETRY_POLICY_BRANCH_ROLLBACK_ON_CONFLICT);
-
+        //锁定重试的策略  数据库commit会调用这里  所以此方法是针对commit失败的重试
         public <T> T execute(Callable<T> callable) throws Exception {
             if (LOCK_RETRY_POLICY_BRANCH_ROLLBACK_ON_CONFLICT) {
                 return callable.call();
@@ -347,6 +350,7 @@ public class ConnectionProxy extends AbstractConnectionProxy {
                     return callable.call();
                 } catch (LockConflictException lockConflict) {
                     onException(lockConflict);
+                    //睡眠时间已经在配置中
                     lockRetryController.sleep(lockConflict);
                 } catch (Exception e) {
                     onException(e);

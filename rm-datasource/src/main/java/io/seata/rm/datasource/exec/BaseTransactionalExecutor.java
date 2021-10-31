@@ -108,7 +108,7 @@ public abstract class BaseTransactionalExecutor<T, S extends Statement> implemen
         if (xid != null) {
             statementProxy.getConnectionProxy().bind(xid);
         }
-
+        //GlobalLock会加上全局锁 那么这里就是true  那么ConnectionProxy commit之前会获取这个全局对象中的属性判断走分布式事务的逻辑还是GlobalLock的逻辑
         statementProxy.getConnectionProxy().setGlobalLockRequire(RootContext.requireGlobalLock());
         return doExecute(args);
     }

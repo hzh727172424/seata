@@ -51,6 +51,7 @@ public class GlobalLockTemplate {
 
             // if previous config is not null, we need to set it back
             // so that the outer logic can still use their config
+            //老的配置设置回去
             if (previousConfig != null) {
                 GlobalLockConfigHolder.setAndReturnPrevious(previousConfig);
             } else {

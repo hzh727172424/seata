@@ -55,6 +55,7 @@ public class RmBranchRollbackProcessor implements RemotingProcessor {
         if (LOGGER.isInfoEnabled()) {
             LOGGER.info("rm handle branch rollback process:" + msg);
         }
+        //处理回滚
         handleBranchRollback(rpcMessage, remoteAddress, (BranchRollbackRequest) msg);
     }
 
