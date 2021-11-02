@@ -30,6 +30,7 @@ import net.sf.cglib.proxy.MethodInterceptor;
 /**
  * @author funkye
  */
+//连接seata报错
 public class ConfigurationCache implements ConfigurationChangeListener {
 
     private static final String METHOD_PREFIX = "get";

@@ -46,6 +46,7 @@ import org.slf4j.LoggerFactory;
  *
  * @author slievrly
  */
+//TODO  客户端经常连不上报这个错 有时间研究一下 hzh
 public class FileConfiguration extends AbstractConfiguration {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(FileConfiguration.class);
@@ -224,7 +225,7 @@ public class FileConfiguration extends AbstractConfiguration {
 
         return null;
     }
-
+    //seata经常报空指针的方法
     @Override
     public String getLatestConfig(String dataId, String defaultValue, long timeoutMills) {
         String value = getConfigFromSysPro(dataId);
