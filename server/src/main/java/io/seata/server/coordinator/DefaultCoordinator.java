@@ -286,7 +286,7 @@ public class DefaultCoordinator extends AbstractTCInboundHandler implements Tran
                     //The function of this 'return' is 'continue'.
                     return;
                 }
-                //如果是true说明还没超时
+                //如果是true说明已经超时
                 if (isRetryTimeout(now, MAX_ROLLBACK_RETRY_TIMEOUT.toMillis(), rollbackingSession.getBeginTime())) {
                     //rollbackRetryTimeoutUnlockEnable   回滚超时后是否解锁
                     if (ROLLBACK_RETRY_TIMEOUT_UNLOCK_ENABLE) {
@@ -295,6 +295,7 @@ public class DefaultCoordinator extends AbstractTCInboundHandler implements Tran
                     /**
                      * Prevent thread safety issues
                      */
+                    //清空当前session
                     SessionHolder.getRetryRollbackingSessionManager().removeGlobalSession(rollbackingSession);
                     LOGGER.info("Global transaction rollback retry timeout and has removed [{}]", rollbackingSession.getXid());
                     //The function of this 'return' is 'continue'.
