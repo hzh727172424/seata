@@ -61,6 +61,8 @@ public class LockRetryController {
     public void sleep(Exception e) throws LockWaitTimeoutException {
         //自减次数 次数小于0就不重试了
         if (--lockRetryTimes < 0) {
+            //这里的lock超时异常是因为commit的时候一直时候重试达到指定的次数。原因有事务提交失败，或者和seata-server通信的失败。比如全局锁获取失败
+            //详情见ConnectionProxy的 processGlobalTransactionCommit
             throw new LockWaitTimeoutException("Global lock wait timeout", e);
         }
 

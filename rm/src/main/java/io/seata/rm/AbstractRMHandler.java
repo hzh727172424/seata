@@ -116,7 +116,9 @@ public abstract class AbstractRMHandler extends AbstractExceptionHandler
     protected void doBranchRollback(BranchRollbackRequest request, BranchRollbackResponse response)
         throws TransactionException {
         String xid = request.getXid();
+        //分支id
         long branchId = request.getBranchId();
+        //数据库连接资源的id
         String resourceId = request.getResourceId();
         String applicationData = request.getApplicationData();
         if (LOGGER.isInfoEnabled()) {

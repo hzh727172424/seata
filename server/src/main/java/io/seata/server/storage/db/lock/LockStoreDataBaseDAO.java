@@ -49,6 +49,7 @@ import static io.seata.common.DefaultValues.DEFAULT_LOCK_DB_TABLE;
  * The type Data base lock store.
  *
  * @author zhangsen
+ *   此类是用来进行提交和回滚前获取全局和分支事务锁id的dao
  */
 public class LockStoreDataBaseDAO implements LockStore {
 

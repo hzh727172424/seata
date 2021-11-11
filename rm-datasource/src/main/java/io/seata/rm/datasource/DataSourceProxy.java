@@ -77,6 +77,7 @@ public class DataSourceProxy extends AbstractDataSourceProxy implements Resource
      *
      * @param targetDataSource the target data source
      */
+    //注册rm数据源
     public DataSourceProxy(DataSource targetDataSource) {
         this(targetDataSource, DEFAULT_RESOURCE_GROUP_ID);
     }
@@ -93,6 +94,7 @@ public class DataSourceProxy extends AbstractDataSourceProxy implements Resource
             targetDataSource = ((SeataDataSourceProxy) targetDataSource).getTargetDataSource();
         }
         this.targetDataSource = targetDataSource;
+        //初始化rm数据源
         init(targetDataSource, resourceGroupId);
     }
 
@@ -107,6 +109,7 @@ public class DataSourceProxy extends AbstractDataSourceProxy implements Resource
         } catch (SQLException e) {
             throw new IllegalStateException("can not init dataSource", e);
         }
+        //注册
         DefaultResourceManager.get().registerResource(this);
         if (ENABLE_TABLE_META_CHECKER_ENABLE) {
             tableMetaExcutor.scheduleAtFixedRate(() -> {

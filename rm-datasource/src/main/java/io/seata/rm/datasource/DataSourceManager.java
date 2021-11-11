@@ -43,6 +43,11 @@ import org.slf4j.LoggerFactory;
  *
  * @author sharajava
  */
+/**
+ * @Author: hzh
+ * @Date: 2021/11/11 20:58
+ * rm数据源的管理器
+ */
 public class DataSourceManager extends AbstractResourceManager {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(DataSourceManager.class);
@@ -82,7 +87,7 @@ public class DataSourceManager extends AbstractResourceManager {
      */
     public DataSourceManager() {
     }
-
+    //注册资源
     @Override
     public void registerResource(Resource resource) {
         DataSourceProxy dataSourceProxy = (DataSourceProxy) resource;

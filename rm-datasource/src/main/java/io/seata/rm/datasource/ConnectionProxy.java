@@ -248,10 +248,10 @@ public class ConnectionProxy extends AbstractConnectionProxy {
         }
         context.reset();
     }
-
+    //此方式异常会重试并且会看到获取全局锁等待超时的异常
     private void processGlobalTransactionCommit() throws SQLException {
-        //GlobalTransaction注册全局锁
         try {
+            //GlobalTransaction注册分支事务锁 如果获取锁失败
             register();
         } catch (TransactionException e) {
             recognizeLockKeyConflictException(e, context.buildLockKeys());
