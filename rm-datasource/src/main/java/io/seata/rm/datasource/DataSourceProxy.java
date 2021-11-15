@@ -161,6 +161,7 @@ public class DataSourceProxy extends AbstractDataSourceProxy implements Resource
         return resourceGroupId;
     }
 
+    //资源id 后续注册rm都是采用这个resourceId
     @Override
     public String getResourceId() {
         if (JdbcConstants.POSTGRESQL.equals(dbType)) {
@@ -168,10 +169,12 @@ public class DataSourceProxy extends AbstractDataSourceProxy implements Resource
         } else if (JdbcConstants.ORACLE.equals(dbType) && userName != null) {
             return getDefaultResourceId() + "/" + userName;
         } else {
+            //正常的mysql走这个
             return getDefaultResourceId();
         }
     }
 
+    //正常的mysql走这个
     /**
      * get the default resource id
      * @return resource id

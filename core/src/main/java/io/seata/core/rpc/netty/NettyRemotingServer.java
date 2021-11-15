@@ -84,6 +84,9 @@ public class NettyRemotingServer extends AbstractNettyRemotingServer {
         channel.close();
     }
 
+
+    //注册所有的处理器。 这里我之前是用适配器模式取处理。
+    //seata采用注册的方式。这种方式可以直接根据类型获取到指定的处理器。是策略模式
     private void registerProcessor() {
         // 1. registry on request message processor
         ServerOnRequestProcessor onRequestProcessor =

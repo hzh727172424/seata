@@ -34,6 +34,7 @@ public class FileRegistryServiceImpl implements RegistryService<ConfigChangeList
     private static volatile FileRegistryServiceImpl instance;
     private static final Configuration CONFIG = ConfigurationFactory.getInstance();
     private static final String POSTFIX_GROUPLIST = ".grouplist";
+    //多个ip的分隔符
     private static final String ENDPOINT_SPLIT_CHAR = ";";
     private static final String IP_PORT_SPLIT_CHAR = ":";
 
@@ -75,7 +76,7 @@ public class FileRegistryServiceImpl implements RegistryService<ConfigChangeList
     public void unsubscribe(String cluster, ConfigChangeListener listener) throws Exception {
 
     }
-
+    //获取seata-server服务端的地址集群用   配置时;分离
     @Override
     public List<InetSocketAddress> lookup(String key) throws Exception {
         String clusterName = getServiceGroup(key);

@@ -155,7 +155,7 @@ public abstract class AbstractNettyRemotingServer extends AbstractNettyRemoting 
     }
 
     /**
-     * The type ServerHandler.
+     * The type ServerHandler.   netty消息的收发
      */
     @ChannelHandler.Sharable
     class ServerHandler extends ChannelDuplexHandler {

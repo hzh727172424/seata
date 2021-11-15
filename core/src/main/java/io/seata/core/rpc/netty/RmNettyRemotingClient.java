@@ -157,8 +157,10 @@ public final class RmNettyRemotingClient extends AbstractNettyRemotingClient {
         if (LOGGER.isInfoEnabled()) {
             LOGGER.info("register RM success. client version:{}, server version:{},channel:{}", registerRMRequest.getVersion(), registerRMResponse.getVersion(), channel);
         }
+        //注册rm服务的通道
         getClientChannelManager().registerChannel(serverAddress, channel);
         String dbKey = getMergedResourceKeys();
+        //还未注册的注册一下
         if (registerRMRequest.getResourceIds() != null) {
             if (!registerRMRequest.getResourceIds().equals(dbKey)) {
                 sendRegisterMessage(serverAddress, channel, dbKey);
@@ -224,6 +226,7 @@ public final class RmNettyRemotingClient extends AbstractNettyRemotingClient {
     }
 
     public String getMergedResourceKeys() {
+        //获取数据库的名称
         Map<String, Resource> managedResources = resourceManager.getManagedResources();
         Set<String> resourceIds = managedResources.keySet();
         if (!resourceIds.isEmpty()) {

@@ -49,6 +49,7 @@ public class NettyPoolableFactory implements KeyedPoolableObjectFactory<NettyPoo
         this.clientBootstrap = clientBootstrap;
     }
 
+    //创建对象的方法
     @Override
     public Channel makeObject(NettyPoolKey key) {
         InetSocketAddress address = NetUtil.toInetSocketAddress(key.getAddress());
@@ -63,6 +64,7 @@ public class NettyPoolableFactory implements KeyedPoolableObjectFactory<NettyPoo
             throw new FrameworkException("register msg is null, role:" + key.getTransactionRole().name());
         }
         try {
+            //key的message是applicationId, transactionServiceGroup  所以这里是发送注册消息  rm和tm
             response = rpcRemotingClient.sendSyncRequest(tmpChannel, key.getMessage());
             if (!isRegisterSuccess(response, key.getTransactionRole())) {
                 rpcRemotingClient.onRegisterMsgFail(key.getAddress(), tmpChannel, response, key.getMessage());

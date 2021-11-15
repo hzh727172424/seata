@@ -79,7 +79,7 @@ public abstract class AbstractRMHandler extends AbstractExceptionHandler
         // https://github.com/seata/seata/issues/2226
     }
 
-    /**
+    /**  分支事务提交
      * Do branch commit.
      *
      * @param request  the request

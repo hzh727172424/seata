@@ -53,6 +53,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
 /**
+ * netty的消息的核心处理类
  * The abstract netty remoting.
  *
  * @author slievrly
@@ -270,6 +271,7 @@ public abstract class AbstractNettyRemoting implements Disposable {
         Object body = rpcMessage.getBody();
         if (body instanceof MessageTypeAware) {
             MessageTypeAware messageTypeAware = (MessageTypeAware) body;
+            //策略模式使用指定的策略取执行rpc消息
             final Pair<RemotingProcessor, ExecutorService> pair = this.processorTable.get((int) messageTypeAware.getTypeCode());
             if (pair != null) {
                 if (pair.getSecond() != null) {
@@ -337,10 +339,11 @@ public abstract class AbstractNettyRemoting implements Disposable {
         }
         return address;
     }
-
+    //netty的写入会写入到缓冲区。缓冲区是一个链表。无界存储。如果不做限制的话内存会oom
     private void channelWritableCheck(Channel channel, Object msg) {
         int tryTimes = 0;
         synchronized (lock) {
+            //判断通道是否可写。默认最大64KB  超过64KB缓冲区即不可写
             while (!channel.isWritable()) {
                 try {
                     tryTimes++;

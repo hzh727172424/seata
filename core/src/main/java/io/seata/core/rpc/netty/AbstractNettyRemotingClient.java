@@ -114,6 +114,7 @@ public abstract class AbstractNettyRemotingClient extends AbstractNettyRemoting 
                 clientChannelManager.reconnect(getTransactionServiceGroup());
             }
         }, SCHEDULE_DELAY_MILLS, SCHEDULE_INTERVAL_MILLS, TimeUnit.MILLISECONDS);
+        //批量消息处理线程
         if (NettyClientConfig.isEnableClientBatchSendRequest()) {
             mergeSendExecutorService = new ThreadPoolExecutor(MAX_MERGE_SEND_THREAD,
                 MAX_MERGE_SEND_THREAD,
@@ -123,6 +124,7 @@ public abstract class AbstractNettyRemotingClient extends AbstractNettyRemoting 
             mergeSendExecutorService.submit(new MergedSendRunnable());
         }
         super.init();
+        //netty客户端注册
         clientBootstrap.start();
     }
 
@@ -144,6 +146,7 @@ public abstract class AbstractNettyRemotingClient extends AbstractNettyRemoting 
 
         // send batch message
         // put message into basketMap, @see MergedSendRunnable
+        //批量发送消息，所有消息推送到队列中。  另起了一个线程获取并且批量发送
         if (NettyClientConfig.isEnableClientBatchSendRequest()) {
 
             // send batch message is sync request, needs to create messageFuture and put it in futures.
@@ -153,6 +156,7 @@ public abstract class AbstractNettyRemotingClient extends AbstractNettyRemoting 
             futures.put(rpcMessage.getId(), messageFuture);
 
             // put message into basketMap
+            //消息推送到队列中
             BlockingQueue<RpcMessage> basket = CollectionUtils.computeIfAbsent(basketMap, serverAddress,
                 key -> new LinkedBlockingQueue<>());
             if (!basket.offer(rpcMessage)) {
@@ -163,12 +167,15 @@ public abstract class AbstractNettyRemotingClient extends AbstractNettyRemoting 
             if (LOGGER.isDebugEnabled()) {
                 LOGGER.debug("offer message: {}", rpcMessage.getBody());
             }
+            //如果不是发送中的话
             if (!isSending) {
+                //获取到合并锁，释放其他锁等待。会执行获取队列中的消息并发送
                 synchronized (mergeLock) {
                     mergeLock.notifyAll();
                 }
             }
 
+            //阻塞等待回复
             try {
                 return messageFuture.get(timeoutMillis, TimeUnit.MILLISECONDS);
             } catch (Exception exx) {
@@ -182,6 +189,7 @@ public abstract class AbstractNettyRemotingClient extends AbstractNettyRemoting 
             }
 
         } else {
+            //普通的单消息发送
             Channel channel = clientChannelManager.acquireChannel(serverAddress);
             return super.sendSync(channel, rpcMessage, timeoutMillis);
         }
@@ -307,12 +315,14 @@ public abstract class AbstractNettyRemotingClient extends AbstractNettyRemoting 
 
     /**
      * The type Merged send runnable.
+     * 循环阻塞执行获取合并的消息并发送的监听线程的任务
      */
     private class MergedSendRunnable implements Runnable {
 
         @Override
         public void run() {
             while (true) {
+                //睡眠一秒钟
                 synchronized (mergeLock) {
                     try {
                         mergeLock.wait(MAX_MERGE_SEND_MILLS);
@@ -324,7 +334,7 @@ public abstract class AbstractNettyRemotingClient extends AbstractNettyRemoting 
                     if (basket.isEmpty()) {
                         return;
                     }
-
+        //取出所有消息合并打印
                     MergedWarpMessage mergeMessage = new MergedWarpMessage();
                     while (!basket.isEmpty()) {
                         RpcMessage msg = basket.poll();
@@ -332,6 +342,7 @@ public abstract class AbstractNettyRemotingClient extends AbstractNettyRemoting 
                         mergeMessage.msgIds.add(msg.getId());
                     }
                     if (mergeMessage.msgIds.size() > 1) {
+                        //打印
                         printMergeMessageLog(mergeMessage);
                     }
                     Channel sendChannel = null;
@@ -339,6 +350,7 @@ public abstract class AbstractNettyRemotingClient extends AbstractNettyRemoting 
                         // send batch message is sync request, but there is no need to get the return value.
                         // Since the messageFuture has been created before the message is placed in basketMap,
                         // the return value will be obtained in ClientOnResponseProcessor.
+                        //发送所有消息 异步  失败的话注销通道
                         sendChannel = clientChannelManager.acquireChannel(address);
                         AbstractNettyRemotingClient.this.sendAsyncRequest(sendChannel, mergeMessage);
                     } catch (FrameworkException e) {

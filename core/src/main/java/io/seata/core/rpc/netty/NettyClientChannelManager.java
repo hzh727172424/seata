@@ -68,10 +68,15 @@ class NettyClientChannelManager {
     private GenericKeyedObjectPool.Config getNettyPoolConfig(final NettyClientConfig clientConfig) {
         GenericKeyedObjectPool.Config poolConfig = new GenericKeyedObjectPool.Config();
         poolConfig.maxActive = clientConfig.getMaxPoolActive();
+        //最小空闲个数
         poolConfig.minIdle = clientConfig.getMinPoolIdle();
+        //最大等待时长
         poolConfig.maxWait = clientConfig.getMaxAcquireConnMills();
+        //在从对象池获取对象时是否检测对象有效，true是；默认值是false。
         poolConfig.testOnBorrow = clientConfig.isPoolTestBorrow();
+        //在向对象池中归还对象时是否检测对象有效，true是，默认值是false。
         poolConfig.testOnReturn = clientConfig.isPoolTestReturn();
+        //对象池存储空闲对象是使用的LinkedBlockingDeque，它本质上是一个支持FIFO和FILO的双向的队列  使用
         poolConfig.lifo = clientConfig.isPoolLifo();
         return poolConfig;
     }
@@ -184,6 +189,7 @@ class NettyClientChannelManager {
             }
             return;
         }
+        //重新连接seata服务器
         for (String serverAddress : availList) {
             try {
                 acquireChannel(serverAddress);
@@ -196,7 +202,7 @@ class NettyClientChannelManager {
     void invalidateObject(final String serverAddress, final Channel channel) throws Exception {
         nettyClientKeyPool.invalidateObject(poolKeyMap.get(serverAddress), channel);
     }
-
+    //注册通道
     void registerChannel(final String serverAddress, final Channel channel) {
         Channel channelToServer = channels.get(serverAddress);
         if (channelToServer != null && channelToServer.isActive()) {
@@ -205,6 +211,7 @@ class NettyClientChannelManager {
         channels.put(serverAddress, channel);
     }
 
+    //连接seata服务器方法
     private Channel doConnect(String serverAddress) {
         Channel channelToServer = channels.get(serverAddress);
         if (channelToServer != null && channelToServer.isActive()) {
@@ -218,7 +225,9 @@ class NettyClientChannelManager {
                 RegisterRMRequest registerRMRequest = (RegisterRMRequest) currentPoolKey.getMessage();
                 ((RegisterRMRequest) previousPoolKey.getMessage()).setResourceIds(registerRMRequest.getResourceIds());
             }
+            //连接池中取出
             channelFromPool = nettyClientKeyPool.borrowObject(poolKeyMap.get(serverAddress));
+            //放入缓存
             channels.put(serverAddress, channelFromPool);
         } catch (Exception exx) {
             LOGGER.error("{} register RM failed.",FrameworkErrorCode.RegisterRM.getErrCode(), exx);
