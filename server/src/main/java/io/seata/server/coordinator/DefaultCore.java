@@ -306,13 +306,16 @@ public class DefaultCore implements Core {
         } else {
             Boolean result = SessionHelper.forEach(globalSession.getReverseSortedBranches(), branchSession -> {
                 BranchStatus currentBranchStatus = branchSession.getStatus();
+                //如果是失败的删除分支事务
                 if (currentBranchStatus == BranchStatus.PhaseOne_Failed) {
                     globalSession.removeBranch(branchSession);
                     return CONTINUE;
                 }
                 try {
+                    //发起回滚操作
                     BranchStatus branchStatus = branchRollback(globalSession, branchSession);
                     switch (branchStatus) {
+                        //回滚成功也会删除分支事务
                         case PhaseTwo_Rollbacked:
                             globalSession.removeBranch(branchSession);
                             LOGGER.info("Rollback branch transaction successfully, xid = {} branchId = {}", globalSession.getXid(), branchSession.getBranchId());

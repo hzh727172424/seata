@@ -94,7 +94,7 @@ public class ProtocolV1Decoder extends LengthFieldBasedFrameDecoder {
         }
         return decoded;
     }
-
+    //根据前面编码的字节一一读取
     public Object decodeFrame(ByteBuf frame) {
         byte b0 = frame.readByte();
         byte b1 = frame.readByte();
@@ -117,6 +117,7 @@ public class ProtocolV1Decoder extends LengthFieldBasedFrameDecoder {
         rpcMessage.setCodec(codecType);
         rpcMessage.setId(requestId);
         rpcMessage.setCompressor(compressorType);
+        //这里是消息的类型
         rpcMessage.setMessageType(messageType);
 
         // direct read head with zero-copy
@@ -138,6 +139,7 @@ public class ProtocolV1Decoder extends LengthFieldBasedFrameDecoder {
                 frame.readBytes(bs);
                 Compressor compressor = CompressorFactory.getCompressor(compressorType);
                 bs = compressor.decompress(bs);
+                //编解码
                 Serializer serializer = EnhancedServiceLoader.load(Serializer.class, SerializerType.getByCode(rpcMessage.getCodec()).name());
                 rpcMessage.setBody(serializer.deserialize(bs));
             }

@@ -31,6 +31,7 @@ public class RMClient {
      * @param transactionServiceGroup the transaction service group
      */
     public static void init(String applicationId, String transactionServiceGroup) {
+        //使用了双重锁获取单例
         RmNettyRemotingClient rmNettyRemotingClient = RmNettyRemotingClient.getInstance(applicationId, transactionServiceGroup);
         rmNettyRemotingClient.setResourceManager(DefaultResourceManager.get());
         rmNettyRemotingClient.setTransactionMessageHandler(DefaultRMHandler.get());

@@ -94,6 +94,7 @@ public class SessionHolder {
         }
         StoreMode storeMode = StoreMode.get(mode);
         if (StoreMode.DB.equals(storeMode)) {
+            //第三个参数是其构造方法的参数
             ROOT_SESSION_MANAGER = EnhancedServiceLoader.load(SessionManager.class, StoreMode.DB.getName());
             ASYNC_COMMITTING_SESSION_MANAGER = EnhancedServiceLoader.load(SessionManager.class, StoreMode.DB.getName(),
                 new Object[] {ASYNC_COMMITTING_SESSION_MANAGER_NAME});

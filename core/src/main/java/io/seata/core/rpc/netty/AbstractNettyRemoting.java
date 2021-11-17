@@ -103,7 +103,7 @@ public abstract class AbstractNettyRemoting implements Disposable {
      * processor type {@link MessageType}
      */
     protected final HashMap<Integer/*MessageType*/, Pair<RemotingProcessor, ExecutorService>> processorTable = new HashMap<>(32);
-
+    //spi加载指定类
     protected final List<RpcHook> rpcHooks = EnhancedServiceLoader.loadAll(RpcHook.class);
 
     public void init() {

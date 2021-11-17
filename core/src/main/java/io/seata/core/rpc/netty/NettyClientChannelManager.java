@@ -211,7 +211,7 @@ class NettyClientChannelManager {
         channels.put(serverAddress, channel);
     }
 
-    //连接seata服务器方法
+    //连接seata服务器  实际是注册服务到channels
     private Channel doConnect(String serverAddress) {
         Channel channelToServer = channels.get(serverAddress);
         if (channelToServer != null && channelToServer.isActive()) {

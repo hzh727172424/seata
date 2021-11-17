@@ -69,6 +69,9 @@ import org.slf4j.LoggerFactory;
 import org.slf4j.MDC;
 
 /**
+ * 核心调度器
+ * 接受来自RM的rpc网络请求（branchRegister，branchReport，lockQuery）。
+ * 同时继承TransactionManager接口，接受来自TM的rpc网络请求（begin，commit,rollback,getStatus）
  * The type Default coordinator.
  */
 public class DefaultCoordinator extends AbstractTCInboundHandler implements TransactionMessageHandler, Disposable {
@@ -220,7 +223,7 @@ public class DefaultCoordinator extends AbstractTCInboundHandler implements Tran
 
     /**
      * Timeout check.
-     *
+     *   所有的事务会话  如果超时处理
      * @throws TransactionException the transaction exception
      */
     protected void timeoutCheck() throws TransactionException {
@@ -274,6 +277,7 @@ public class DefaultCoordinator extends AbstractTCInboundHandler implements Tran
      * Handle retry rollbacking.
      */
     protected void handleRetryRollbacking() {
+        //获取所有的回滚会话
         Collection<GlobalSession> rollbackingSessions = SessionHolder.getRetryRollbackingSessionManager().allSessions();
         if (CollectionUtils.isEmpty(rollbackingSessions)) {
             return;
@@ -290,6 +294,7 @@ public class DefaultCoordinator extends AbstractTCInboundHandler implements Tran
                 if (isRetryTimeout(now, MAX_ROLLBACK_RETRY_TIMEOUT.toMillis(), rollbackingSession.getBeginTime())) {
                     //rollbackRetryTimeoutUnlockEnable   回滚超时后是否解锁
                     if (ROLLBACK_RETRY_TIMEOUT_UNLOCK_ENABLE) {
+                        //实际上操作DB为例是删除lockTable的数据
                         rollbackingSession.clean();
                     }
                     /**
@@ -313,6 +318,7 @@ public class DefaultCoordinator extends AbstractTCInboundHandler implements Tran
      * Handle retry committing.
      */
     protected void handleRetryCommitting() {
+        //获取所有的sessions 全局事务提交的会话  其实其他会话的session都是一样的 seesion是原形模式
         Collection<GlobalSession> committingSessions = SessionHolder.getRetryCommittingSessionManager().allSessions();
         if (CollectionUtils.isEmpty(committingSessions)) {
             return;
@@ -320,14 +326,15 @@ public class DefaultCoordinator extends AbstractTCInboundHandler implements Tran
         long now = System.currentTimeMillis();
         SessionHelper.forEach(committingSessions, committingSession -> {
             try {
-                // prevent repeated commit
+                // prevent repeated commit  如果是提交了的返回
                 if (committingSession.getStatus().equals(GlobalStatus.Committing) && !committingSession.isDeadSession()) {
                     //The function of this 'return' is 'continue'.
                     return;
                 }
+                // 重试超时的话删除会话
                 if (isRetryTimeout(now, MAX_COMMIT_RETRY_TIMEOUT.toMillis(), committingSession.getBeginTime())) {
                     /**
-                     * Prevent thread safety issues
+                     * Prevent thread safety issues  成功了删除
                      */
                     SessionHolder.getRetryCommittingSessionManager().removeGlobalSession(committingSession);
                     LOGGER.error("Global transaction commit retry timeout and has removed [{}]", committingSession.getXid());
@@ -371,7 +378,7 @@ public class DefaultCoordinator extends AbstractTCInboundHandler implements Tran
     }
 
     /**
-     * Undo log delete.
+     * Undo log delete.  删除undolog   此处是超时的undolog删除
      */
     protected void undoLogDelete() {
         Map<String, Channel> rmChannels = ChannelManager.getRmChannels();

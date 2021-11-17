@@ -107,6 +107,7 @@ public class EnhancedServiceLoader {
      * @return the s
      * @throws EnhancedServiceNotFoundException the enhanced service not found exception
      */
+    //第三个参数是其构造方法的参数
     public static <S> S load(Class<S> service, String activateName, Object[] args)
             throws EnhancedServiceNotFoundException {
         return InnerEnhancedServiceLoader.getServiceLoader(service).load(activateName, args, findClassLoader());

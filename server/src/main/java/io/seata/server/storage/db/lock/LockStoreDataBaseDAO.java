@@ -248,7 +248,7 @@ public class LockStoreDataBaseDAO implements LockStore {
         }
         return true;
     }
-
+    //释放lockTable中的行数据锁
     @Override
     public boolean unLock(String xid, List<Long> branchIds) {
         Connection conn = null;

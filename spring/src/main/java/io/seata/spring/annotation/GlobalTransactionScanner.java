@@ -196,13 +196,13 @@ public class GlobalTransactionScanner extends AbstractAutoProxyCreator
         /*
           这里可以看出一个服务他既是一个tm也是一个rm
         */
-        //注册tm
+        //注册tm 注册netty客户端入口
         //init TM
         TMClient.init(applicationId, txServiceGroup, accessKey, secretKey);
         if (LOGGER.isInfoEnabled()) {
             LOGGER.info("Transaction Manager Client is initialized. applicationId[{}] txServiceGroup[{}]", applicationId, txServiceGroup);
         }
-        //注册rm
+        //注册rm  注册netty客户端入口
         //init RM
         RMClient.init(applicationId, txServiceGroup);
         if (LOGGER.isInfoEnabled()) {

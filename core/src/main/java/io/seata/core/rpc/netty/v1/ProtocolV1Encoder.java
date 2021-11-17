@@ -105,11 +105,11 @@ public class ProtocolV1Encoder extends MessageToByteEncoder {
 
                 // fix fullLength and headLength
                 int writeIndex = out.writerIndex();
-                // skip magic code(2B) + version(1B)
+                // skip magic code(2B) + version(1B)     定位到 第3个字节 上面只是分配6b空间 没写值，这里写具体的值fullLength和headLength
                 out.writerIndex(writeIndex - fullLength + 3);
                 out.writeInt(fullLength);
                 out.writeShort(headLength);
-                out.writerIndex(writeIndex);
+                out.writerIndex(writeIndex); // 定位到最初写的位置
             } else {
                 throw new UnsupportedOperationException("Not support this class:" + msg.getClass());
             }

@@ -68,6 +68,7 @@ public class DataBaseLockManager extends AbstractLockManager implements Initiali
         return locker;
     }
 
+    //解锁。删除事务表行锁
     @Override
     public boolean releaseGlobalSessionLock(GlobalSession globalSession) throws TransactionException {
         List<BranchSession> branchSessions = globalSession.getBranchSessions();

@@ -36,7 +36,7 @@ import org.slf4j.LoggerFactory;
 
 /**
  * The type Server.
- *
+ *   seata 服务端入口   只提供tcp端口
  * @author slievrly
  */
 public class Server {

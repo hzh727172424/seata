@@ -49,7 +49,7 @@ public class NettyPoolableFactory implements KeyedPoolableObjectFactory<NettyPoo
         this.clientBootstrap = clientBootstrap;
     }
 
-    //创建对象的方法
+    //创建对象的方法   borrowObject会调用
     @Override
     public Channel makeObject(NettyPoolKey key) {
         InetSocketAddress address = NetUtil.toInetSocketAddress(key.getAddress());

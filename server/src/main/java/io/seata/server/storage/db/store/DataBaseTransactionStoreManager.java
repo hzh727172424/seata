@@ -109,6 +109,7 @@ public class DataBaseTransactionStoreManager extends AbstractTransactionStoreMan
         } else if (LogOperation.BRANCH_UPDATE.equals(logOperation)) {
             return logStore.updateBranchTransactionDO(SessionConverter.convertBranchTransactionDO(session));
         } else if (LogOperation.BRANCH_REMOVE.equals(logOperation)) {
+            //删除分支事务表
             return logStore.deleteBranchTransactionDO(SessionConverter.convertBranchTransactionDO(session));
         } else {
             throw new StoreException("Unknown LogOperation:" + logOperation.name());
