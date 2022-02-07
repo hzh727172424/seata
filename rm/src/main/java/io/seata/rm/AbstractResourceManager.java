@@ -51,7 +51,7 @@ public abstract class AbstractResourceManager implements ResourceManager {
      * @param clientId   the client id
      * @param xid        the xid
      * @param lockKeys   the lock keys
-     * @return branchId
+     * @return branchId   注册分支事务，branch_table表插入数据  同时注册事务锁，lock_table插入数据
      * @throws TransactionException TransactionException
      */
     @Override

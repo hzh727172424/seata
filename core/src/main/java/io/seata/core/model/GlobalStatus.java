@@ -60,7 +60,7 @@ public enum GlobalStatus {
     RollbackRetrying(5),
 
     /**
-     * The Timeout rollbacking.
+     * The Timeout rollbacking. 超时回滚的状态
      */
     // Rollbacking since timeout
     TimeoutRollbacking(6),

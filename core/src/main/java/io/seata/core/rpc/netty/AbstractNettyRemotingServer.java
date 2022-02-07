@@ -190,6 +190,7 @@ public abstract class AbstractNettyRemotingServer extends AbstractNettyRemoting 
          *
          * @param ctx the ctx
          * @throws Exception the exception
+         * 估计调用channel.close会触发这里
          */
         @Override
         public void channelInactive(ChannelHandlerContext ctx) throws Exception {

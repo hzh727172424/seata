@@ -73,6 +73,7 @@ import org.slf4j.MDC;
  * 接受来自RM的rpc网络请求（branchRegister，branchReport，lockQuery）。
  * 同时继承TransactionManager接口，接受来自TM的rpc网络请求（begin，commit,rollback,getStatus）
  * The type Default coordinator.
+ * 定时清理undolog
  */
 public class DefaultCoordinator extends AbstractTCInboundHandler implements TransactionMessageHandler, Disposable {
 
@@ -294,7 +295,7 @@ public class DefaultCoordinator extends AbstractTCInboundHandler implements Tran
                 if (isRetryTimeout(now, MAX_ROLLBACK_RETRY_TIMEOUT.toMillis(), rollbackingSession.getBeginTime())) {
                     //rollbackRetryTimeoutUnlockEnable   回滚超时后是否解锁
                     if (ROLLBACK_RETRY_TIMEOUT_UNLOCK_ENABLE) {
-                        //实际上操作DB为例是删除lockTable的数据
+                        //实际上以操作DB为例是删除lockTable的数据
                         rollbackingSession.clean();
                     }
                     /**

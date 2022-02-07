@@ -228,6 +228,7 @@ public class ConnectionProxy extends AbstractConnectionProxy {
 
     //连接的commit  coomit之前需要校验获取全局锁
     private void doCommit() throws SQLException {
+        //有xid的话
         if (context.inGlobalTransaction()) {
             processGlobalTransactionCommit();
             //如果GlobalLock了 那么会走这个逻辑
@@ -251,7 +252,7 @@ public class ConnectionProxy extends AbstractConnectionProxy {
     //此方式异常会重试并且会看到获取全局锁等待超时的异常
     private void processGlobalTransactionCommit() throws SQLException {
         try {
-            //GlobalTransaction注册分支事务锁 如果获取锁失败
+            //GlobalTransaction注册分支事务锁
             register();
         } catch (TransactionException e) {
             recognizeLockKeyConflictException(e, context.buildLockKeys());

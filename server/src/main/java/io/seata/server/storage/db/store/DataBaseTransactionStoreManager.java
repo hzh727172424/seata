@@ -43,6 +43,7 @@ import io.seata.server.storage.SessionConverter;
 
 /**
  * The type Database transaction store manager.
+ * seata事务的持久化操作  跟4个表的插入
  *
  * @author zhangsen
  */
@@ -98,12 +99,14 @@ public class DataBaseTransactionStoreManager extends AbstractTransactionStoreMan
 
     @Override
     public boolean writeSession(LogOperation logOperation, SessionStorable session) {
+        //全局事务表记录插入新增
         if (LogOperation.GLOBAL_ADD.equals(logOperation)) {
             return logStore.insertGlobalTransactionDO(SessionConverter.convertGlobalTransactionDO(session));
         } else if (LogOperation.GLOBAL_UPDATE.equals(logOperation)) {
             return logStore.updateGlobalTransactionDO(SessionConverter.convertGlobalTransactionDO(session));
         } else if (LogOperation.GLOBAL_REMOVE.equals(logOperation)) {
             return logStore.deleteGlobalTransactionDO(SessionConverter.convertGlobalTransactionDO(session));
+            //新增分支事务
         } else if (LogOperation.BRANCH_ADD.equals(logOperation)) {
             return logStore.insertBranchTransactionDO(SessionConverter.convertBranchTransactionDO(session));
         } else if (LogOperation.BRANCH_UPDATE.equals(logOperation)) {

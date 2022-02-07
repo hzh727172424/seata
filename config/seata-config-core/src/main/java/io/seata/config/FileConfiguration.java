@@ -46,7 +46,7 @@ import org.slf4j.LoggerFactory;
  *
  * @author slievrly
  */
-//TODO  客户端经常连不上报这个错 有时间研究一下 hzh
+//TODO  客户端经常连不上报这个错 有时间研究一下 hzh   报错
 public class FileConfiguration extends AbstractConfiguration {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(FileConfiguration.class);
@@ -390,7 +390,7 @@ public class FileConfiguration extends AbstractConfiguration {
 
             dataIdMap.computeIfAbsent(dataId, value -> new HashSet<>()).add(listener);
         }
-
+//经常出现的报错
         @Override
         public void onChangeEvent(ConfigurationChangeEvent event) {
             while (true) {
