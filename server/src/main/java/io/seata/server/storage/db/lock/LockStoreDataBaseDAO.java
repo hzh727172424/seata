@@ -97,7 +97,7 @@ public class LockStoreDataBaseDAO implements LockStore {
     public boolean acquireLock(LockDO lockDO) {
         return acquireLock(Collections.singletonList(lockDO));
     }
-
+    //获取全局锁
     @Override
     public boolean acquireLock(List<LockDO> lockDOs) {
         Connection conn = null;
