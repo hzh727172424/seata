@@ -22,12 +22,12 @@ import io.seata.core.model.GlobalLockConfig;
 /**
  * executor template for local transaction which need global lock
  * @author selfishlover
- * //全局锁模板
+ * //GlobalLock锁模板
  */
 public class GlobalLockTemplate {
 
     public Object execute(GlobalLockExecutor executor) throws Throwable {
-        //首先获取全局锁。没有锁住的话就上锁
+        //首先获取锁。没有锁住的话就上锁
         boolean alreadyInGlobalLock = RootContext.requireGlobalLock();
         if (!alreadyInGlobalLock) {
             RootContext.bindGlobalLockFlag();
