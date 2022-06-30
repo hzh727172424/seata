@@ -96,7 +96,7 @@ public abstract class AbstractNettyRemotingClient extends AbstractNettyRemoting 
     /**
      * When batch sending is enabled, the message will be stored to basketMap
      * Send via asynchronous thread {@link MergedSendRunnable}
-     * {@link NettyClientConfig#isEnableClientBatchSendRequest}
+     * {@link this#isEnableClientBatchSendRequest()}
      */
     protected final ConcurrentHashMap<String/*serverAddress*/, BlockingQueue<RpcMessage>> basketMap = new ConcurrentHashMap<>();
 
@@ -115,7 +115,7 @@ public abstract class AbstractNettyRemotingClient extends AbstractNettyRemoting 
             }
         }, SCHEDULE_DELAY_MILLS, SCHEDULE_INTERVAL_MILLS, TimeUnit.MILLISECONDS);
         //批量消息处理线程
-        if (NettyClientConfig.isEnableClientBatchSendRequest()) {
+        if (this.isEnableClientBatchSendRequest()) {
             mergeSendExecutorService = new ThreadPoolExecutor(MAX_MERGE_SEND_THREAD,
                 MAX_MERGE_SEND_THREAD,
                 KEEP_ALIVE_TIME, TimeUnit.MILLISECONDS,
@@ -141,13 +141,13 @@ public abstract class AbstractNettyRemotingClient extends AbstractNettyRemoting 
     @Override
     public Object sendSyncRequest(Object msg) throws TimeoutException {
         String serverAddress = loadBalance(getTransactionServiceGroup(), msg);
-        int timeoutMillis = NettyClientConfig.getRpcRequestTimeout();
+        long timeoutMillis = this.getRpcRequestTimeout();
         RpcMessage rpcMessage = buildRequestMessage(msg, ProtocolConstants.MSGTYPE_RESQUEST_SYNC);
 
         // send batch message
         // put message into basketMap, @see MergedSendRunnable
         //批量发送消息，所有消息推送到队列中。  另起了一个线程获取并且批量发送
-        if (NettyClientConfig.isEnableClientBatchSendRequest()) {
+        if (this.isEnableClientBatchSendRequest()) {
 
             // send batch message is sync request, needs to create messageFuture and put it in futures.
             MessageFuture messageFuture = new MessageFuture();
@@ -203,7 +203,7 @@ public abstract class AbstractNettyRemotingClient extends AbstractNettyRemoting 
             return null;
         }
         RpcMessage rpcMessage = buildRequestMessage(msg, ProtocolConstants.MSGTYPE_RESQUEST_SYNC);
-        return super.sendSync(channel, rpcMessage, NettyClientConfig.getRpcRequestTimeout());
+        return super.sendSync(channel, rpcMessage, this.getRpcRequestTimeout());
     }
 
     @Override
@@ -260,12 +260,12 @@ public abstract class AbstractNettyRemotingClient extends AbstractNettyRemoting 
         return clientChannelManager;
     }
 
-    private String loadBalance(String transactionServiceGroup, Object msg) {
+    protected String loadBalance(String transactionServiceGroup, Object msg) {
         InetSocketAddress address = null;
         try {
             @SuppressWarnings("unchecked")
-            List<InetSocketAddress> inetSocketAddressList = RegistryFactory.getInstance().lookup(transactionServiceGroup);
-            address = LoadBalanceFactory.getInstance().select(inetSocketAddressList, getXid(msg));
+            List<InetSocketAddress> inetSocketAddressList = RegistryFactory.getInstance().aliveLookup(transactionServiceGroup);
+            address = this.doSelect(inetSocketAddressList, msg);
         } catch (Exception ex) {
             LOGGER.error(ex.getMessage());
         }
@@ -275,7 +275,18 @@ public abstract class AbstractNettyRemotingClient extends AbstractNettyRemoting 
         return NetUtil.toStringAddress(address);
     }
 
-    private String getXid(Object msg) {
+    protected InetSocketAddress doSelect(List<InetSocketAddress> list, Object msg) throws Exception {
+        if (CollectionUtils.isNotEmpty(list)) {
+            if (list.size() > 1) {
+                return LoadBalanceFactory.getInstance().select(list, getXid(msg));
+            } else {
+                return list.get(0);
+            }
+        }
+        return null;
+    }
+
+    protected String getXid(Object msg) {
         String xid = "";
         if (msg instanceof AbstractGlobalEndRequest) {
             xid = ((AbstractGlobalEndRequest) msg).getXid();
@@ -312,6 +323,20 @@ public abstract class AbstractNettyRemotingClient extends AbstractNettyRemoting 
      * @return transaction service group
      */
     protected abstract String getTransactionServiceGroup();
+
+    /**
+     * Whether to enable batch sending of requests, hand over to subclass implementation.
+     *
+     * @return true:enable, false:disable
+     */
+    protected abstract boolean isEnableClientBatchSendRequest();
+
+    /**
+     * get Rpc Request Timeout
+     *
+     * @return the Rpc Request Timeout
+     */
+    protected abstract long getRpcRequestTimeout();
 
     /**
      * The type Merged send runnable.
@@ -475,4 +500,5 @@ public abstract class AbstractNettyRemotingClient extends AbstractNettyRemoting 
             super.close(ctx, future);
         }
     }
+
 }

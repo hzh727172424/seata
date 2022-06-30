@@ -100,10 +100,13 @@ public abstract class AbstractDMLBaseExecutor<T, S extends Statement> extends Ba
         //前镜像
         TableRecords beforeImage = beforeImage();
         T result = statementCallback.execute(statementProxy.getTargetStatement(), args);
-        //后镜像
-        TableRecords afterImage = afterImage(beforeImage);
-        //预处理undolog 这个是seata的undolog  加入到ConnectionProxy的存储sql容器中
-        prepareUndoLog(beforeImage, afterImage);
+        //后镜像 1.5.0之前的版本没有判断updateCount>0
+        int updateCount = statementProxy.getUpdateCount();
+        if (updateCount > 0) {
+            TableRecords afterImage = afterImage(beforeImage);
+            //预处理undolog 这个是seata的undolog  加入到ConnectionProxy的存储sql容器中
+            prepareUndoLog(beforeImage, afterImage);
+        }
         return result;
     }
 
@@ -113,7 +116,7 @@ public abstract class AbstractDMLBaseExecutor<T, S extends Statement> extends Ba
         }
         if (CollectionUtils.isNotEmpty(sqlRecognizers)) {
             List<SQLRecognizer> distinctSQLRecognizer = sqlRecognizers.stream().filter(
-                distinctByKey(t -> t.getTableName())).collect(Collectors.toList());
+                    distinctByKey(t -> t.getTableName())).collect(Collectors.toList());
             for (SQLRecognizer sqlRecognizer : distinctSQLRecognizer) {
                 if (getTableMeta(sqlRecognizer.getTableName()).getPrimaryKeyOnlyName().size() > 1) {
                     return true;
@@ -176,10 +179,9 @@ public abstract class AbstractDMLBaseExecutor<T, S extends Statement> extends Ba
     protected abstract TableRecords afterImage(TableRecords beforeImage) throws SQLException;
 
     private static class LockRetryPolicy extends ConnectionProxy.LockRetryPolicy {
-        private final ConnectionProxy connection;
 
         LockRetryPolicy(final ConnectionProxy connection) {
-            this.connection = connection;
+            super(connection);
         }
 
         @Override

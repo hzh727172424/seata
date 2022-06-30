@@ -24,6 +24,7 @@ import io.seata.config.ConfigurationChangeListener;
 import io.seata.config.ConfigurationFactory;
 import io.seata.core.constants.ConfigurationKeys;
 import io.seata.core.context.GlobalLockConfigHolder;
+import io.seata.core.exception.TransactionExceptionCode;
 import io.seata.core.model.GlobalLockConfig;
 
 /**
@@ -40,7 +41,7 @@ public class LockRetryController {
         ConfigurationCache.addConfigListener(ConfigurationKeys.CLIENT_LOCK_RETRY_TIMES, LISTENER);
     }
 
-    private int lockRetryInternal;
+    private int lockRetryInterval;
 
     private int lockRetryTimes;
 
@@ -48,7 +49,7 @@ public class LockRetryController {
      * Instantiates a new Lock retry controller.
      */
     public LockRetryController() {
-        this.lockRetryInternal = getLockRetryInternal();
+        this.lockRetryInterval = getLockRetryInterval();
         this.lockRetryTimes = getLockRetryTimes();
     }
 
@@ -59,30 +60,31 @@ public class LockRetryController {
      * @throws LockWaitTimeoutException the lock wait timeout exception
      */
     public void sleep(Exception e) throws LockWaitTimeoutException {
-        //自减次数 次数小于0就不重试了
-        if (--lockRetryTimes < 0) {
+        // prioritize the rollback of other transactions 自减次数 次数小于0就不重试了  1.5.0新增了两个判断条件
+        if (--lockRetryTimes < 0 || (e instanceof LockConflictException
+            && ((LockConflictException)e).getCode() == TransactionExceptionCode.LockKeyConflictFailFast)) {
             //这里的lock超时异常是因为commit的时候一直时候重试达到指定的次数。原因有事务提交失败，或者和seata-server通信的失败。比如全局锁获取失败
             //详情见ConnectionProxy的 processGlobalTransactionCommit
             throw new LockWaitTimeoutException("Global lock wait timeout", e);
         }
 
         try {
-            Thread.sleep(lockRetryInternal);
+            Thread.sleep(lockRetryInterval);
         } catch (InterruptedException ignore) {
         }
     }
 
-    int getLockRetryInternal() {
+    int getLockRetryInterval() {
         // get customized config first
         GlobalLockConfig config = GlobalLockConfigHolder.getCurrentGlobalLockConfig();
         if (config != null) {
-            int configInternal = config.getLockRetryInternal();
-            if (configInternal > 0) {
-                return configInternal;
+            int configInterval = config.getLockRetryInterval();
+            if (configInterval > 0) {
+                return configInterval;
             }
         }
         // if there is no customized config, use global config instead
-        return LISTENER.getGlobalLockRetryInternal();
+        return LISTENER.getGlobalLockRetryInterval();
     }
 
     int getLockRetryTimes() {
@@ -100,16 +102,16 @@ public class LockRetryController {
 
     static class GlobalConfig implements ConfigurationChangeListener {
 
-        private volatile int globalLockRetryInternal;
+        private volatile int globalLockRetryInterval;
 
         private volatile int globalLockRetryTimes;
 
-        private final int defaultRetryInternal = DefaultValues.DEFAULT_CLIENT_LOCK_RETRY_INTERVAL;
+        private final int defaultRetryInterval = DefaultValues.DEFAULT_CLIENT_LOCK_RETRY_INTERVAL;
         private final int defaultRetryTimes = DefaultValues.DEFAULT_CLIENT_LOCK_RETRY_TIMES;
 
         public GlobalConfig() {
             Configuration configuration = ConfigurationFactory.getInstance();
-            globalLockRetryInternal = configuration.getInt(ConfigurationKeys.CLIENT_LOCK_RETRY_INTERVAL, defaultRetryInternal);
+            globalLockRetryInterval = configuration.getInt(ConfigurationKeys.CLIENT_LOCK_RETRY_INTERVAL, defaultRetryInterval);
             globalLockRetryTimes = configuration.getInt(ConfigurationKeys.CLIENT_LOCK_RETRY_TIMES, defaultRetryTimes);
         }
 
@@ -118,15 +120,15 @@ public class LockRetryController {
             String dataId = event.getDataId();
             String newValue = event.getNewValue();
             if (ConfigurationKeys.CLIENT_LOCK_RETRY_INTERVAL.equals(dataId)) {
-                globalLockRetryInternal = NumberUtils.toInt(newValue, defaultRetryInternal);
+                globalLockRetryInterval = NumberUtils.toInt(newValue, defaultRetryInterval);
             }
             if (ConfigurationKeys.CLIENT_LOCK_RETRY_TIMES.equals(dataId)) {
                 globalLockRetryTimes = NumberUtils.toInt(newValue, defaultRetryTimes);
             }
         }
 
-        public int getGlobalLockRetryInternal() {
-            return globalLockRetryInternal;
+        public int getGlobalLockRetryInterval() {
+            return globalLockRetryInterval;
         }
 
         public int getGlobalLockRetryTimes() {

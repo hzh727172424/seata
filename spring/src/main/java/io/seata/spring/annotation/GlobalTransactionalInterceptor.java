@@ -59,6 +59,7 @@ import static io.seata.common.DefaultValues.DEFAULT_GLOBAL_TRANSACTION_TIMEOUT;
 import static io.seata.common.DefaultValues.DEFAULT_TM_DEGRADE_CHECK;
 import static io.seata.common.DefaultValues.DEFAULT_TM_DEGRADE_CHECK_ALLOW_TIMES;
 import static io.seata.common.DefaultValues.DEFAULT_TM_DEGRADE_CHECK_PERIOD;
+import static io.seata.common.DefaultValues.TM_INTERCEPTOR_ORDER;
 
 /**
  * The type Global transactional interceptor.
@@ -66,7 +67,7 @@ import static io.seata.common.DefaultValues.DEFAULT_TM_DEGRADE_CHECK_PERIOD;
  * @author slievrly、
  *  全局事务动态代理类
  */
-public class GlobalTransactionalInterceptor implements ConfigurationChangeListener, MethodInterceptor {
+public class GlobalTransactionalInterceptor implements ConfigurationChangeListener, MethodInterceptor, SeataInterceptor {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(GlobalTransactionalInterceptor.class);
     private static final FailureHandler DEFAULT_FAIL_HANDLER = new DefaultFailureHandlerImpl();
@@ -75,6 +76,8 @@ public class GlobalTransactionalInterceptor implements ConfigurationChangeListen
     private final GlobalLockTemplate globalLockTemplate = new GlobalLockTemplate();
     private final FailureHandler failureHandler;
     private volatile boolean disable;
+    private int order;
+    protected AspectTransactional aspectTransactional;
     private static int degradeCheckPeriod;
     private static volatile boolean degradeCheck;
     private static int degradeCheckAllowTimes;
@@ -107,6 +110,10 @@ public class GlobalTransactionalInterceptor implements ConfigurationChangeListen
         }
     }
 
+    public GlobalTransactionalInterceptor() {
+        this(null);
+    }
+
     //endregion
 
     /**
@@ -120,14 +127,16 @@ public class GlobalTransactionalInterceptor implements ConfigurationChangeListen
         //从配置工厂中获取配置。  工厂从配置文件中获取
         this.disable = ConfigurationFactory.getInstance().getBoolean(ConfigurationKeys.DISABLE_GLOBAL_TRANSACTION,
             DEFAULT_DISABLE_GLOBAL_TRANSACTION);
+        this.order =
+            ConfigurationFactory.getInstance().getInt(ConfigurationKeys.TM_INTERCEPTOR_ORDER, TM_INTERCEPTOR_ORDER);
         degradeCheck = ConfigurationFactory.getInstance().getBoolean(ConfigurationKeys.CLIENT_DEGRADE_CHECK,
             DEFAULT_TM_DEGRADE_CHECK);
         if (degradeCheck) {
             ConfigurationCache.addConfigListener(ConfigurationKeys.CLIENT_DEGRADE_CHECK, this);
-            degradeCheckPeriod = ConfigurationFactory.getInstance().getInt(
-                ConfigurationKeys.CLIENT_DEGRADE_CHECK_PERIOD, DEFAULT_TM_DEGRADE_CHECK_PERIOD);
-            degradeCheckAllowTimes = ConfigurationFactory.getInstance().getInt(
-                ConfigurationKeys.CLIENT_DEGRADE_CHECK_ALLOW_TIMES, DEFAULT_TM_DEGRADE_CHECK_ALLOW_TIMES);
+            degradeCheckPeriod = ConfigurationFactory.getInstance()
+                .getInt(ConfigurationKeys.CLIENT_DEGRADE_CHECK_PERIOD, DEFAULT_TM_DEGRADE_CHECK_PERIOD);
+            degradeCheckAllowTimes = ConfigurationFactory.getInstance()
+                .getInt(ConfigurationKeys.CLIENT_DEGRADE_CHECK_ALLOW_TIMES, DEFAULT_TM_DEGRADE_CHECK_ALLOW_TIMES);
             EVENT_BUS.register(this);
             if (degradeCheckPeriod > 0 && degradeCheckAllowTimes > 0) {
                 startDegradeCheck();
@@ -150,8 +159,21 @@ public class GlobalTransactionalInterceptor implements ConfigurationChangeListen
             boolean localDisable = disable || (degradeCheck && degradeNum >= degradeCheckAllowTimes);
             if (!localDisable) {
                 //全局事务拦截器和全局锁分开处理
-                if (globalTransactionalAnnotation != null) {
-                    return handleGlobalTransaction(methodInvocation, globalTransactionalAnnotation);
+                if (globalTransactionalAnnotation != null || this.aspectTransactional != null) {
+                    AspectTransactional transactional;
+                    if (globalTransactionalAnnotation != null) {
+                        transactional = new AspectTransactional(globalTransactionalAnnotation.timeoutMills(),
+                            globalTransactionalAnnotation.name(), globalTransactionalAnnotation.rollbackFor(),
+                            globalTransactionalAnnotation.noRollbackForClassName(),
+                            globalTransactionalAnnotation.noRollbackFor(),
+                            globalTransactionalAnnotation.noRollbackForClassName(),
+                            globalTransactionalAnnotation.propagation(),
+                            globalTransactionalAnnotation.lockRetryInterval(),
+                            globalTransactionalAnnotation.lockRetryTimes());
+                    } else {
+                        transactional = this.aspectTransactional;
+                    }
+                    return handleGlobalTransaction(methodInvocation, transactional);
                 } else if (globalLockAnnotation != null) {
                     return handleGlobalLock(methodInvocation, globalLockAnnotation);
                 }
@@ -160,8 +182,7 @@ public class GlobalTransactionalInterceptor implements ConfigurationChangeListen
         return methodInvocation.proceed();
     }
 
-    Object handleGlobalLock(final MethodInvocation methodInvocation,
-        final GlobalLock globalLockAnno) throws Throwable {
+    private Object handleGlobalLock(final MethodInvocation methodInvocation, final GlobalLock globalLockAnno) throws Throwable {
         //调用全局锁的模板方法执行  RM
         return globalLockTemplate.execute(new GlobalLockExecutor() {
             @Override
@@ -172,7 +193,7 @@ public class GlobalTransactionalInterceptor implements ConfigurationChangeListen
             @Override
             public GlobalLockConfig getGlobalLockConfig() {
                 GlobalLockConfig config = new GlobalLockConfig();
-                config.setLockRetryInternal(globalLockAnno.lockRetryInternal());
+                config.setLockRetryInterval(globalLockAnno.lockRetryInterval());
                 config.setLockRetryTimes(globalLockAnno.lockRetryTimes());
                 return config;
             }
@@ -180,7 +201,7 @@ public class GlobalTransactionalInterceptor implements ConfigurationChangeListen
     }
 
     Object handleGlobalTransaction(final MethodInvocation methodInvocation,
-        final GlobalTransactional globalTrxAnno) throws Throwable {
+        final AspectTransactional aspectTransactional) throws Throwable {
         boolean succeed = true;
         try {
             //全局事务的模板方法 TM
@@ -191,7 +212,7 @@ public class GlobalTransactionalInterceptor implements ConfigurationChangeListen
                 }
 
                 public String name() {
-                    String name = globalTrxAnno.name();
+                    String name = aspectTransactional.getName();
                     if (!StringUtils.isNullOrEmpty(name)) {
                         return name;
                     }
@@ -201,7 +222,7 @@ public class GlobalTransactionalInterceptor implements ConfigurationChangeListen
                 @Override
                 public TransactionInfo getTransactionInfo() {
                     // reset the value of timeout
-                    int timeout = globalTrxAnno.timeoutMills();
+                    int timeout = aspectTransactional.getTimeoutMills();
                     if (timeout <= 0 || timeout == DEFAULT_GLOBAL_TRANSACTION_TIMEOUT) {
                         timeout = defaultGlobalTransactionTimeout;
                     }
@@ -209,20 +230,20 @@ public class GlobalTransactionalInterceptor implements ConfigurationChangeListen
                     TransactionInfo transactionInfo = new TransactionInfo();
                     transactionInfo.setTimeOut(timeout);
                     transactionInfo.setName(name());
-                    transactionInfo.setPropagation(globalTrxAnno.propagation());
-                    transactionInfo.setLockRetryInternal(globalTrxAnno.lockRetryInternal());
-                    transactionInfo.setLockRetryTimes(globalTrxAnno.lockRetryTimes());
+                    transactionInfo.setPropagation(aspectTransactional.getPropagation());
+                    transactionInfo.setLockRetryInterval(aspectTransactional.getLockRetryInterval());
+                    transactionInfo.setLockRetryTimes(aspectTransactional.getLockRetryTimes());
                     Set<RollbackRule> rollbackRules = new LinkedHashSet<>();
-                    for (Class<?> rbRule : globalTrxAnno.rollbackFor()) {
+                    for (Class<?> rbRule : aspectTransactional.getRollbackFor()) {
                         rollbackRules.add(new RollbackRule(rbRule));
                     }
-                    for (String rbRule : globalTrxAnno.rollbackForClassName()) {
+                    for (String rbRule : aspectTransactional.getRollbackForClassName()) {
                         rollbackRules.add(new RollbackRule(rbRule));
                     }
-                    for (Class<?> rbRule : globalTrxAnno.noRollbackFor()) {
+                    for (Class<?> rbRule : aspectTransactional.getNoRollbackFor()) {
                         rollbackRules.add(new NoRollbackRule(rbRule));
                     }
-                    for (String rbRule : globalTrxAnno.noRollbackForClassName()) {
+                    for (String rbRule : aspectTransactional.getNoRollbackForClassName()) {
                         rollbackRules.add(new NoRollbackRule(rbRule));
                     }
                     transactionInfo.setRollbackRules(rollbackRules);
@@ -335,5 +356,20 @@ public class GlobalTransactionalInterceptor implements ConfigurationChangeListen
                 reachNum = 0;
             }
         }
+    }
+
+    @Override
+    public int getOrder() {
+        return order;
+    }
+
+    @Override
+    public void setOrder(int order) {
+        this.order = order;
+    }
+
+    @Override
+    public SeataInterceptorPosition getPosition() {
+        return SeataInterceptorPosition.BeforeTransaction;
     }
 }

@@ -93,7 +93,7 @@ public abstract class AbstractCore implements Core {
             }
             if (LOGGER.isInfoEnabled()) {
                 LOGGER.info("Register branch successfully, xid = {}, branchId = {}, resourceId = {} ,lockKeys = {}",
-                    globalSession.getXid(), branchSession.getBranchId(), resourceId, lockKeys);
+                        globalSession.getXid(), branchSession.getBranchId(), resourceId, lockKeys);
             }
             return branchSession.getBranchId();
         });
@@ -139,6 +139,7 @@ public abstract class AbstractCore implements Core {
             throw new BranchTransactionException(BranchTransactionNotExist,
                     String.format("Could not found branch session xid = %s branchId = %s", xid, branchId));
         }
+        branchSession.setApplicationData(applicationData);
         globalSession.addSessionLifecycleListener(SessionHolder.getRootSessionManager());
         globalSession.changeBranchStatus(branchSession, status);
 
